@@ -318,61 +318,65 @@
   </form>
 
 <script>
-// --- SISTEMA DE ESTOQUE VIA XML ---
-let estoqueGlobal = {};
+// --- SISTEMA DE ESTOQUE VIA XML (EXATAMENTE COMO O LAUDO DE ROBÔS) ---
+let estoquePorProduto = {};
 
-// Carrega o XML no momento em que a página é aberta
 window.addEventListener('DOMContentLoaded', carregarEstoque);
 
 async function carregarEstoque() {
     try {
         const response = await fetch('datastock.xml');
         if (!response.ok) throw new Error('Falha HTTP: ' + response.status);
-        const xmlText = await response.text();
+        const xmlTexto = await response.text();
         
-        estoqueGlobal = parseEstoqueXml(xmlText);
+        parseEstoqueXml(xmlTexto);
+        salvarEstoqueLocal();
         
-        // Backup local de segurança
-        localStorage.setItem('estoque_geradores_backup', JSON.stringify(estoqueGlobal));
-        console.log('Estoque sincronizado com sucesso via datastock.xml', estoqueGlobal);
+        console.log('Estoque sincronizado com sucesso via datastock.xml', estoquePorProduto);
     } catch (error) {
         console.warn('Falha ao carregar datastock.xml. Carregando dados do backup local (localStorage).', error);
         const backup = localStorage.getItem('estoque_geradores_backup');
         if (backup) {
-            estoqueGlobal = JSON.parse(backup);
+            estoquePorProduto = JSON.parse(backup);
         }
     }
 }
 
-// Lógica de parser do DOM para ler estrutura de planilhas XML (<Row> <Cell> <Data>)
-function parseEstoqueXml(xmlString) {
+function parseEstoqueXml(xmlTexto) {
     const parser = new DOMParser();
-    const xmlDoc = parser.parseFromString(xmlString, "application/xml");
+    const xmlDoc = parser.parseFromString(xmlTexto, "application/xml");
     const rows = xmlDoc.getElementsByTagName("Row");
-    const estoque = {};
+    
+    // Zera a variável para recarregar as informações novas
+    estoquePorProduto = {}; 
 
     for (let i = 1; i < rows.length; i++) { // Iniciando em 1 para pular o cabeçalho
         const cells = rows[i].getElementsByTagName("Cell");
         if (cells.length >= 2) {
-            // Assume-se Código na primeira coluna e Quantidade na última (ou penúltima)
+            // Identifica as colunas de "produto" e "quantidade"
             const codigoElem = cells[0].getElementsByTagName("Data")[0];
             const qtdElem = cells[cells.length - 1].getElementsByTagName("Data")[0];
 
             let codigo = codigoElem ? codigoElem.textContent.trim() : "";
             let qtdText = qtdElem ? qtdElem.textContent.trim() : "0";
 
-            // Normalização: códigos numéricos pequenos costumam perder os zeros à esquerda no Excel
             if (codigo.length > 0 && codigo.length < 5 && !isNaN(codigo)) {
                 codigo = codigo.padStart(5, '0');
             }
 
             if (codigo) {
-                estoque[codigo] = parseInt(qtdText, 10) || 0;
+                // Salva os dados na variável
+                estoquePorProduto[codigo] = parseInt(qtdText, 10) || 0;
             }
         }
     }
-    return estoque;
 }
+
+function salvarEstoqueLocal() {
+    // Cria um backup no localStorage
+    localStorage.setItem('estoque_geradores_backup', JSON.stringify(estoquePorProduto));
+}
+
 
 // --- CONFIGURAÇÃO DOS SERVIÇOS E PEÇAS ---
 const tabelaServicosGerador = {
@@ -527,9 +531,9 @@ document.getElementById("modelo").addEventListener("change", function() {
             let badgeHtml = "";
             let maxAttr = "";
             
-            // Lógica para injetar o selo de Estoque
+            // Busca o valor atual na variável correta: estoquePorProduto
             if (codigo !== "") {
-                const qtdAtual = estoqueGlobal[codigo] !== undefined ? estoqueGlobal[codigo] : "N/D";
+                const qtdAtual = estoquePorProduto[codigo] !== undefined ? estoquePorProduto[codigo] : "N/D";
                 
                 if (qtdAtual === "N/D") {
                     badgeHtml = `<span class="badge-estoque estoque-nd">Estoque: N/D</span>`;
