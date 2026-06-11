@@ -1,0 +1,914 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Gerador de Laudo Técnico - Geradores de Cloro</title>
+  <style>
+    /* --- ESTILO GERAL E CORES --- */
+    :root {
+      --cor-primaria: #007bff;
+      --cor-fundo: #8ad6cf;
+      --cor-card: #ffffff;
+      --cor-borda: #dee2e6;
+      --cor-sombra: rgba(0, 0, 0, 0.1);
+      --cor-texto: #495057;
+      --cor-titulo: #212529;
+    }
+
+    body { 
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background-color: var(--cor-fundo);
+      color: var(--cor-texto);
+    }
+
+    /* --- ESTRUTURA DO FORMULÁRIO --- */
+    .form-section {
+      border: 1px solid var(--cor-borda); 
+      padding: 20px; 
+      margin: 20px 0; 
+      border-radius: 8px; 
+      background-color: var(--cor-card);
+      box-shadow: 0 4px 8px var(--cor-sombra);
+    }
+
+    .form-group {
+      margin-bottom: 15px;
+    }
+
+    label, .form-group > span {
+      display: block;
+      font-weight: bold;
+      margin-bottom: 5px;
+    }
+
+    input[type="text"], input[type="date"], input[type="time"], select, textarea {
+      width: 100%;
+      padding: 12px 15px; 
+      border-radius: 8px;
+      border: 1px solid var(--cor-borda);
+      font-size: 16px;
+      box-sizing: border-box;
+    }
+
+    textarea {
+      resize: vertical;
+    }
+
+    .checkbox-group label {
+      display: inline-flex;
+      width: auto;
+      margin-right: 20px;
+      font-weight: normal;
+    }
+
+    /* --- BOTÃO PRINCIPAL --- */
+    #btnGerarLaudo {
+      width: 100%;
+      padding: 15px;
+      font-size: 18px;
+      background-color: #28a745;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background-color 0.2s ease-in-out;
+    }
+    #btnGerarLaudo:hover {
+      background-color: #218838;
+    }
+
+    /* --- SEÇÃO DE PEÇAS E ESTOQUE --- */
+    .peca-img {
+      width: 90px; height: 90px; margin-right: 15px; object-fit: cover;
+      border-radius: 8px; border: 1px solid var(--cor-borda);
+    }
+    #pecasLista label.peca-info {
+      display: flex; width: 100%; align-items: center; margin-bottom: 10px;
+      padding: 10px; border-radius: 8px; border: 1px solid transparent;
+      transition: background-color 0.2s ease-in-out, border-color 0.2s ease-in-out;
+      cursor: pointer;
+    }
+    #pecasLista label.peca-info:hover {
+      background-color: #f8f9fa; border-color: var(--cor-borda);
+    }
+    #pecasLista h4 {
+      margin-top: 20px; margin-bottom: 15px; padding-bottom: 8px;
+      border-bottom: 2px solid var(--cor-primaria); color: var(--cor-titulo);
+    }
+    #pecasLista h4:first-child { margin-top: 0; }
+    
+    .peca-item {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 15px;
+      align-items: center;
+      margin-bottom: 15px;
+    }
+
+    .peca-textos {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .badge-estoque {
+      font-size: 12px;
+      padding: 4px 8px;
+      border-radius: 12px;
+      font-weight: bold;
+      width: fit-content;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .estoque-ok {
+      background-color: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+    .estoque-zerado {
+      background-color: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+    .estoque-nd {
+      background-color: #e2e3e5;
+      color: #383d41;
+      border: 1px solid #d6d8db;
+    }
+
+    .opcoes-peca {
+      display: none;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .cor-selecao {
+      display: flex;
+      gap: 5px;
+      border: 1px solid var(--cor-borda);
+      padding: 5px;
+      border-radius: 8px;
+      background-color: #f8f9fa;
+    }
+
+    .cor-selecao label {
+      font-weight: normal;
+      cursor: pointer;
+      padding: 5px 10px;
+      border-radius: 4px;
+      border: 1px solid transparent;
+      transition: all 0.2s ease-in-out;
+    }
+
+    .cor-selecao label:hover {
+      background-color: #e9ecef;
+    }
+
+    .cor-selecao input[value="verde"]:checked + label {
+      background-color: #d4edda; color: #155724; border-color: #b1dfbb; font-weight: bold;
+    }
+    .cor-selecao input[value="azul"]:checked + label {
+      background-color: #cce5ff; color: #004085; border-color: #b8daff; font-weight: bold;
+    }
+    .cor-selecao input[value="rosa"]:checked + label {
+      background-color: #ebacdd; color: #ed3cc5; border-color: #f5c6cb; font-weight: bold;
+    }
+
+    .cor-selecao input[type="radio"] { display: none; }
+
+    .quantidade-label {
+      display: flex; align-items: center; gap: 8px; font-weight: normal;
+    }
+    .quantidade-input {
+      width: 60px; padding: 8px; text-align: center;
+    }
+
+    /* --- PREVIEW DAS FOTOS --- */
+    #previewFotos {
+      display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px;
+    }
+    .preview-img {
+      width: 150px; height: 150px; object-fit: cover;
+      border-radius: 8px; border: 1px solid var(--cor-borda);
+    }
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+  <h1>Gerador de Laudo Técnico - Geradores</h1>
+
+  <form id="laudoForm">
+    <div class="form-section">
+      <h2>Informações Gerais</h2>
+      <div class="form-group">
+        <label for="cliente">Cliente:</label>
+        <input type="text" id="cliente" required>
+      </div>
+      <div class="form-group">
+        <label for="ra">RA/ID:</label>
+        <input type="text" id="ra" required>
+      </div>
+      <div class="form-group">
+        <label for="dataEntrada">Data de Entrada:</label>
+        <input type="date" id="dataEntrada" required>
+      </div>
+      <div class="form-group">
+        <label for="horaEntrada">Hora de Entrada:</label>
+        <input type="time" id="horaEntrada" required>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <h2>Dados do Equipamento</h2>
+      <div class="form-group">
+        <label for="modelo">Selecione o Modelo:</label>
+        <select id="modelo" required>
+          <option value="">-- Escolha --</option>
+          <option value="GS-06">GS-06</option>
+          <option value="GS-12">GS-12</option>
+          <option value="GS-16">GS-16</option>
+          <option value="GS-20">GS-20</option>
+          <option value="GS-25">GS-25</option>
+          <option value="GS-42">GS-42</option>
+          <option value="GS-45">GS-45</option>
+        </select>
+      </div>
+       <div class="form-group">
+        <label for="codGerador">Código do Gerador:</label>
+        <input type="text" id="codGerador">
+      </div>
+      <div class="form-group">
+        <label for="codCelula">Código da Célula:</label>
+        <input type="text" id="codCelula">
+      </div>
+      <div class="form-group">
+        <label for="codFonte">Código da Fonte:</label>
+        <input type="text" id="codFonte">
+      </div>
+      
+
+      <div class="form-group">
+        <label for="garantia">Está em Garantia?:</label>
+        <select id="garantia" required>
+         <option value="">-- Escolha --</option>
+         <option value="SIM">SIM</option>
+         <option value="NÃO">NÃO</option>
+      </select>
+      </div>
+
+      <div class="form-group">
+        <span>Acessórios Inclusos:</span>
+        <div class="checkbox-group">
+          <label><input type="checkbox" name="acessorios" value="Caixa"> Caixa</label>
+          <label><input type="checkbox" name="acessorios" value="Célula"> Célula</label>
+          <label><input type="checkbox" name="acessorios" value="Fonte"> Fonte</label>
+          <label><input type="checkbox" name="acessorios" value="Cabo"> Cabo</label>
+          <label><input type="checkbox" name="acessorios" value="Gerador"> Gerador</label>
+          <label><input type="checkbox" name="acessorios" value="Fluxostato"> Fluxostato</label>
+          <label><input type="checkbox" name="acessorios" value="Manual"> Manual</label>
+        </div>
+      </div>
+    </div>
+    
+    <div class="form-section">
+        <h2>Análise Técnica</h2>
+        <div class="form-group">
+            <label for="defeitoRelatado">Defeito Relatado pelo Cliente:</label>
+            <textarea id="defeitoRelatado" rows="4" required></textarea>
+        </div>
+        <div class="form-group">
+            <label for="obsTecnicas">Observações Técnicas:</label>
+            <textarea id="obsTecnicas" rows="6" required></textarea>
+        </div>
+        
+        <div class="form-group">
+            <label for="selecaoServico">Classificação do Serviço (Mão de Obra):</label>
+            <select id="selecaoServico" required disabled>
+                <option value="">-- Selecione primeiro o modelo do gerador --</option>
+            </select>
+            <input type="hidden" id="codigoServicoSelecionado">
+            <input type="hidden" id="descServicoSelecionado">
+            <input type="hidden" id="detalheServicoSelecionado">
+        </div>
+
+        <div class="form-group">
+            <label for="obsGerais">Observações Gerais:</label>
+            <textarea id="obsGerais" rows="3"></textarea>
+        </div>
+
+    </div>
+
+    <div class="form-section hidden" id="pecasBox">
+        <h2>Peças Necessárias</h2>
+        <div id="pecasLista"></div>
+    </div>
+
+    <div class="form-section">
+      <h2>Fotos do Equipamento</h2>
+      <div class="form-group">
+        <label for="fotos">Carregar fotos (múltiplas):</label>
+        <input type="file" id="fotos" multiple accept="image/*">
+        <div id="previewFotos"></div>
+      </div>
+    </div>
+
+    <button type="button" id="btnGerarLaudo" onclick="gerarLaudo()">Gerar Laudo Técnico</button>
+  </form>
+
+<script>
+// --- SISTEMA DE ESTOQUE VIA XML ---
+let estoqueGlobal = {};
+
+// Carrega o XML no momento em que a página é aberta
+window.addEventListener('DOMContentLoaded', carregarEstoque);
+
+async function carregarEstoque() {
+    try {
+        const response = await fetch('datastock.xml');
+        if (!response.ok) throw new Error('Falha HTTP: ' + response.status);
+        const xmlText = await response.text();
+        
+        estoqueGlobal = parseEstoqueXml(xmlText);
+        
+        // Backup local de segurança
+        localStorage.setItem('estoque_geradores_backup', JSON.stringify(estoqueGlobal));
+        console.log('Estoque sincronizado com sucesso via datastock.xml', estoqueGlobal);
+    } catch (error) {
+        console.warn('Falha ao carregar datastock.xml. Carregando dados do backup local (localStorage).', error);
+        const backup = localStorage.getItem('estoque_geradores_backup');
+        if (backup) {
+            estoqueGlobal = JSON.parse(backup);
+        }
+    }
+}
+
+// Lógica de parser do DOM para ler estrutura de planilhas XML (<Row> <Cell> <Data>)
+function parseEstoqueXml(xmlString) {
+    const parser = new DOMParser();
+    const xmlDoc = parser.parseFromString(xmlString, "application/xml");
+    const rows = xmlDoc.getElementsByTagName("Row");
+    const estoque = {};
+
+    for (let i = 1; i < rows.length; i++) { // Iniciando em 1 para pular o cabeçalho
+        const cells = rows[i].getElementsByTagName("Cell");
+        if (cells.length >= 2) {
+            // Assume-se Código na primeira coluna e Quantidade na última (ou penúltima)
+            const codigoElem = cells[0].getElementsByTagName("Data")[0];
+            const qtdElem = cells[cells.length - 1].getElementsByTagName("Data")[0];
+
+            let codigo = codigoElem ? codigoElem.textContent.trim() : "";
+            let qtdText = qtdElem ? qtdElem.textContent.trim() : "0";
+
+            // Normalização: códigos numéricos pequenos costumam perder os zeros à esquerda no Excel
+            if (codigo.length > 0 && codigo.length < 5 && !isNaN(codigo)) {
+                codigo = codigo.padStart(5, '0');
+            }
+
+            if (codigo) {
+                estoque[codigo] = parseInt(qtdText, 10) || 0;
+            }
+        }
+    }
+    return estoque;
+}
+
+// --- CONFIGURAÇÃO DOS SERVIÇOS E PEÇAS ---
+const tabelaServicosGerador = {
+    residencial: [
+        { nivel: "Simples",  codigo: "27783", desc: "SERVIÇO CONSERTO GER. CLORO RES NL1", detalhe: "Serviços de manutenção corretiva simples (Fusível, Revisão e Limpeza)." },
+        { nivel: "Moderado", codigo: "27784", desc: "SERVIÇO CONSERTO GER. CLORO RES NL2", detalhe: "Serviços de manutenção corretiva com analise rápida (Célula, Fluxostato e Fonte)." },
+        { nivel: "Complexo", codigo: "27785", desc: "SERVIÇO CONSERTO GER. CLORO RES NL3", detalhe: "Serviços de manutenção corretiva com analise demorada (Placas e Carenagem)." }
+    ],
+    comercial: [
+        { nivel: "Simples",  codigo: "27786", desc: "SERVIÇO CONSERTO GER. CLORO COML NL1", detalhe: "Serviços de manutenção corretiva simples: (Fusível, Revisão e Limpeza)." },
+        { nivel: "Moderado", codigo: "27787", desc: "SERVIÇO CONSERTO GER. CLORO COML NL2", detalhe: "Serviços de manutenção corretiva com analise rápida (Célula, Fluxostato e Fonte)." },
+        { nivel: "Complexo", codigo: "27788", desc: "SERVIÇO CONSERTO GER. CLORO COML NL3", detalhe: "Serviços de manutenção corretiva com analise demorada (Placas e Carenagem)." }
+    ]
+};
+
+const categoriaGerador = {
+    "GS-06": "residencial", "GS-12": "residencial", "GS-16": "residencial", 
+    "GS-20": "residencial", "GS-25": "residencial", "GS-42": "comercial", "GS-45": "comercial"
+};
+
+const pecasPorModelo = {
+    "GS-12": {
+    "Componentes Principais": {
+        "27178": { nome: "Célula", imagem: "GS-12/celula.jpg" },
+        "27164": { nome: "Placa de Distribuição", imagem: "GS-12/placadistribuicao.jpg" },
+        "27170": { nome: "Fonte", imagem: "GS-12/fonte.jpg" },
+        "24312": { nome: "Fluxostato", imagem: "GS-12/fluxostato.jpg" },
+        "27152": { nome: "Conjunto de Uniões", imagem: "GS-12/conjuntounioes.jpg" },
+        "27156": { nome: "Anel Oring Vermelho", imagem: "GS-12/aneloringvermelho.jpg" },
+        "27158": { nome: "Anel Oring Verde", imagem: "GS-12/verde.jpg" },
+        "": { nome: "Sem anomalia", imagem: "GS-12/semanomalia.jpg" },
+    }
+    },
+    "GS-16": {
+    "Componentes Principais": {
+        "27176": { nome: "Celula", imagem: "GS-12/celula.jpg" },
+        "27162": { nome: "Placa de distribuição", imagem: "GS-12/placadistribuicao.jpg" },
+        "27170": { nome: "Fonte", imagem: "GS-12/fonte.jpg" },
+        "24312": { nome: "Fluxostato", imagem: "GS-12/fluxostato.jpg" },
+        "27152": { nome: "Conjunto de Uniões", imagem: "GS-12/conjuntounioes.jpg" },
+        "27156": { nome: "Anel Oring (Vermelho)", imagem: "GS-12/aneloringvermelho.jpg" },
+        "27158": { nome: "Anel Oring Verde", imagem: "GS-12/verde.jpg" },
+        "": { nome: "Sem anomalia", imagem: "GS-12/semanomalia.jpg" },
+    }
+    },
+    "GS-20": {
+    "Componentes Principais": {
+        "25002": { nome: "Placa de Bordo", imagem: "GS-20/placadebordo.jpg" },
+        "25024": { nome: "Tampa da Célula", imagem: "GS-20/tampa.jpg" },
+        "23465": { nome: "Célula c/ Cabo", imagem: "GS-20/celula.jpg" },
+        "23872": { nome: "Corpo da Célula", imagem: "GS-20/corpo.jpg" },
+        "23991": { "nome": "Fluxostato", "imagem": "GS-12/fluxostato.jpg" },
+        "23873": { nome: "Anel de Vedação da Célula", imagem: "GS-20/anelcelula.jpg" },
+        "24968": { nome: "Anel de Vedação do Corpo", imagem: "GS-20/anelcorpo.jpg" },
+        "25403": { nome: "Fusível", imagem: "GS-20/fusivel.jpg" },
+        "23874": { nome: "União 1.5", imagem: "GS-20/uniao.jpg" },
+        "23893": { nome: "União 2.0", imagem: "GS-20/uniao.jpg" },
+        "23878": { nome: "Porca da União 2\"", imagem: "GS-20/porcauniao.jpg" },
+        "": { nome: "Sem anomalia", imagem: "GS-12/semanomalia.jpg" },
+    }
+    },
+    "GS-06": {
+    "Componentes Principais": {
+        "27180": { "nome": "Célula", "imagem": "GS-12/celula.jpg" },
+        "27166": { nome: "Placa de distribuição", imagem: "GS-12/placadistribuicao.jpg" },
+        "27172": { "nome": "Fonte", "imagem": "GS-12/fonte.jpg" },
+        "24312": { "nome": "Fluxostato", "imagem": "GS-12/fluxostato.jpg" },
+        "27152": { "nome": "Conjunto de Uniões", "imagem": "GS-12/conjuntounioes.jpg" },
+        "27156": { "nome": "Anel O-Ring Vermelho", "imagem": "GS-12/aneloringvermelho.jpg" },
+        "27158": { "nome": "Anel Oring Verde", "imagem": "GS-12/verde.jpg" },
+        "": { nome: "Sem anomalia", imagem: "GS-12/semanomalia.jpg" },
+    }
+    },
+    "GS-25": {
+    "Componentes Principais": {
+        "27160": { "nome": "Placa de Distribuição", "imagem": "GS-12/placadistribuicao.jpg" },
+        "24312": { "nome": "Fluxostato", "imagem": "GS-12/fluxostato.jpg" },
+        "27174": { "nome": "Célula GS-25", "imagem": "GS-12/celula.jpg" },
+        "27158": { "nome": "Verde", "imagem": "GS-12/verde.jpg" },
+        "27156": { "nome": "Anel O-Ring Vermelho", "imagem": "GS-12/aneloringvermelho.jpg" },
+        "27168": { "nome": "Fonte GS-25", "imagem": "GS-12/fonte.jpg" },
+        "27152": { "nome": "Conjunto de Uniões", "imagem": "GS-12/conjuntounioes.jpg" },
+        "": { nome: "Sem anomalia", imagem: "GS-12/semanomalia.jpg" },
+    }
+    },
+    "GS-42": {
+      "Componentes Principais": {
+        "27429": { "nome": "Placa do Visor", "imagem": "GS-42/placadovisor.jpg" },
+        "00007": { "nome": "Placa de Distribuição", "imagem": "GS-42/placadedistribuicao.jpg" },
+        "27427": { "nome": "Carenagem do Gerador", "imagem": "GS-42/carenagemgerador.jpg" },
+        "27422": { "nome": "Parte Inferior do Gerador", "imagem": "GS-42/parteinferiordogerador.jpg" },
+        "27425": { "nome": "Cabo do Gerador", "imagem": "GS-42/cabodogerador.jpg" },
+        "27431": { "nome": "Cabo de Distribuição", "imagem": "GS-42/cabodedistribuicao.jpg" },
+        "27381": { "nome": "Célula", "imagem": "GS-42/celula.jpg" },
+        "27423": { "nome": "Cabo da Célula", "imagem": "GS-42/cabodacelula.jpg" },
+        "27383": { "nome": "Capa da Célula", "imagem": "GS-42/capadacelula.jpg" },
+        "00009": { "nome": "Placa de Comando", "imagem": "GS-42/placadecomando.jpg" },
+        "": { nome: "Sem anomalia", imagem: "GS-12/semanomalia.jpg" },
+      }
+    },
+    "GS-45": {
+      "Componentes Principais": {
+        "23549": { nome: "Tampa Frontal", imagem: "GS-45/tampafrontal.jpg" },
+        "23550": { nome: "Fusível", imagem: "GS-45/fusivel.jpg" },
+        "23551": { nome: "Interruptor 250VAC/6A", imagem: "GS-45/interruptor.jpg" },
+        "23552": { nome: "Timer Analógico", imagem: "GS-45/timeranalogico.jpg" },
+        "23880": { nome: "Painel Frontal", imagem: "GS-45/painelfrontal.jpg" },
+        "23879": { nome: "Tampa Superior", imagem: "GS-45/tampasuperior.jpg" },
+        "23244": { nome: "Placa Visor Digital v1", imagem: "GS-45/placavisordigitalv1.jpg" },
+        "25062": { nome: "Placa Visor Digital v5.6.1", imagem: "GS-45/placavisordigitalv2.jpg" },
+        "25060": { nome: "Placa Visor Digital v5.6", imagem: "GS-45/placavisordigitalv3.jpg" },
+        "23242": { nome: "Placa de Distribuição v1.5", imagem: "GS-45/placadistribuicaov1.jpg" },
+        "25993": { nome: "Placa de Distribuição v1", imagem: "GS-45/placadistribuicaov2.jpg" },
+        "25995": { nome: "Placa de Distribuição v1.7", imagem: "GS-45/placadistribuicaov3.jpg" },
+        "23991": { "nome": "Fluxostato", "imagem": "GS-12/fluxostato.jpg" },
+        "23243": { nome: "Placa de Bordo Principal", imagem: "GS-45/placadebordoprincipal.jpg" },
+        "23556": { nome: "Corpo da Célula", imagem: "GS-45/corpocelula.jpg" },
+        "23559": { nome: "Anel de Vedação da Célula", imagem: "GS-45/anelvedacaocelula.jpg" },
+        "14020": { nome: "Célula", imagem: "GS-45/celula.jpg" },
+        "23557": { nome: "União 1.5", imagem: "GS-45/uniao.jpg" },
+        "23535": { nome: "Anel do Corpo da Célula", imagem: "GS-45/anelcorpocelula.jpg" },
+        "23558": { nome: "União 2", imagem: "GS-45/uniao.jpg" },
+        "23560": { nome: "Anel da União", imagem: "GS-45/aneluniao.jpg" },
+        "20944": { nome: "Cabo", imagem: "GS-45/cabo.jpg" },
+        "23245": { nome: "Porta Fusível Interno", imagem: "GS-45/portafusivelinterno.jpg" },
+        "23881": { nome: "Cabo e Adaptador", imagem: "GS-45/caboeadaptador.jpg" },
+        "23882": { nome: "Cabo Adaptador", imagem: "GS-45/caboadaptador.jpg" },
+        "": { nome: "Sem anomalia", imagem: "GS-12/semanomalia.jpg" },
+      },
+    }
+};
+
+const GOOGLE_WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbzjvRk5S6_hHhOwEHBsua0zMSVjRIB4rC7hQyT0NtcbL1OMGMx9qjqn4GlN2EHrPfKp/exec';
+const UPLOAD_TOKEN      = 'MEU_TOKEN_SEGURO_123';
+
+document.getElementById("modelo").addEventListener("change", function() {
+  const modelo = this.value;
+  const pecasBox = document.getElementById("pecasBox");
+  const lista = document.getElementById("pecasLista");
+  const selectServico = document.getElementById("selecaoServico");
+
+  lista.innerHTML = "";
+  selectServico.innerHTML = '<option value="">-- Selecione o serviço --</option>';
+  selectServico.disabled = true;
+
+  if (modelo) {
+    if (pecasPorModelo[modelo]) {
+        pecasBox.classList.remove("hidden");
+        const pecasDoModelo = pecasPorModelo[modelo];
+        
+        function criarHtmlPeca(codigo, peca) {
+            let badgeHtml = "";
+            let maxAttr = "";
+            
+            // Lógica para injetar o selo de Estoque
+            if (codigo !== "") {
+                const qtdAtual = estoqueGlobal[codigo] !== undefined ? estoqueGlobal[codigo] : "N/D";
+                
+                if (qtdAtual === "N/D") {
+                    badgeHtml = `<span class="badge-estoque estoque-nd">Estoque: N/D</span>`;
+                } else if (qtdAtual <= 0) {
+                    badgeHtml = `<span class="badge-estoque estoque-zerado">Estoque: Zerado</span>`;
+                } else {
+                    badgeHtml = `<span class="badge-estoque estoque-ok">Estoque: ${qtdAtual}</span>`;
+                    maxAttr = `max="${qtdAtual}"`;
+                }
+            }
+
+            return `
+                <div class="peca-item">
+                <label class="peca-info">
+                    <input type="checkbox" value="${codigo}" data-nome="${peca.nome}" onchange="togglePecaOpcoes(this)">
+                    <img src="imagens/${peca.imagem}" class="peca-img" alt="${peca.nome}">
+                    <div class="peca-textos">
+                        <span>${peca.nome}</span>
+                        ${badgeHtml}
+                    </div>
+                </label>
+                <div class="opcoes-peca">
+                    <label class="quantidade-label">
+                    Qtd:
+                    <input type="number" class="quantidade-input" value="1" min="1" ${maxAttr}>
+                    </label>
+                    <div class="cor-selecao">
+                    <input type="radio" name="cor_${codigo}" value="verde" id="cor_v_${codigo}" checked>
+                    <label for="cor_v_${codigo}">V</label>
+
+                    <input type="radio" name="cor_${codigo}" value="azul" id="cor_a_${codigo}">
+                    <label for="cor_a_${codigo}">A</label>
+
+                    <input type="radio" name="cor_${codigo}" value="rosa" id="cor_r_${codigo}">
+                    <label for="cor_r_${codigo}">R</label>
+                    </div>
+                </div>
+                </div>
+            `;
+        }
+
+        const primeiraChave = Object.keys(pecasDoModelo)[0];
+        if (pecasDoModelo[primeiraChave] && typeof pecasDoModelo[primeiraChave].nome === 'undefined') {
+            for (const [nomeCategoria, pecasDaCategoria] of Object.entries(pecasDoModelo)) {
+                lista.innerHTML += `<h4>${nomeCategoria}</h4>`;
+                for (const [codigo, peca] of Object.entries(pecasDaCategoria)) {
+                    lista.innerHTML += criarHtmlPeca(codigo, peca);
+                }
+            }
+        } else {
+            for (const [codigo, peca] of Object.entries(pecasDoModelo)) {
+                lista.innerHTML += criarHtmlPeca(codigo, peca);
+            }
+        }
+    } else {
+        pecasBox.classList.add("hidden");
+    }
+
+    const tipo = categoriaGerador[modelo];
+    if (tipo && tabelaServicosGerador[tipo]) {
+        selectServico.disabled = false;
+        tabelaServicosGerador[tipo].forEach(servico => {
+            const option = document.createElement("option");
+            option.value = JSON.stringify(servico); 
+            option.text = `${servico.nivel} - ${servico.desc}`;
+            selectServico.appendChild(option);
+        });
+    }
+
+  } else {
+    pecasBox.classList.add("hidden");
+  }
+});
+
+function togglePecaOpcoes(checkbox) {
+    const container = checkbox.closest('.peca-item');
+    const opcoes = container.querySelector('.opcoes-peca');
+    if (checkbox.checked) {
+        opcoes.style.display = 'flex';
+    } else {
+        opcoes.style.display = 'none';
+    }
+}
+
+// Lógica para preview das imagens
+const imagensParaLaudo = [];
+document.getElementById("fotos").addEventListener("change", function(event) {
+    const preview = document.getElementById("previewFotos");
+    preview.innerHTML = "";
+    imagensParaLaudo.length = 0; 
+
+    for (const file of event.target.files) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const img = document.createElement("img");
+            img.src = e.target.result;
+            img.classList.add("preview-img");
+            preview.appendChild(img);
+            imagensParaLaudo.push(e.target.result); 
+        }
+        reader.readAsDataURL(file);
+    }
+});
+
+function gerarLaudo() {
+    const erros = [];
+    const cliente = document.getElementById("cliente").value.trim();
+    if (cliente === '') erros.push("O campo 'Cliente' é obrigatório.");
+    if (document.getElementById("ra").value.trim() === '') erros.push("O campo 'RA/ID' é obrigatório.");
+    if (document.getElementById("dataEntrada").value === '') erros.push("O campo 'Data de Entrada' é obrigatório.");
+    if (document.getElementById("horaEntrada").value === '') erros.push("O campo 'Hora de Entrada' é obrigatório.");
+    if (document.getElementById("defeitoRelatado").value.trim() === '') erros.push("O campo 'Defeito Relatado pelo Cliente' é obrigatório.");
+    if (document.getElementById("obsTecnicas").value.trim() === '') erros.push("O campo 'Observações Técnicas' é obrigatório.");
+    if (imagensParaLaudo.length === 0) erros.push("É necessário anexar pelo menos uma foto.");
+    
+    const selectServico = document.getElementById("selecaoServico");
+    if (selectServico.value === "") erros.push("É obrigatório selecionar a 'Classificação do Serviço'.");
+
+    const garantia = document.getElementById("garantia").value;
+    if (garantia === '') erros.push("É obrigatório selecionar se o produto está em 'Garantia'.");
+
+    const pecasSelecionadas = document.querySelectorAll('#pecasLista input[type="checkbox"]:checked');
+    const pecasBoxVisivel = !document.getElementById('pecasBox').classList.contains('hidden');
+
+    if (pecasBoxVisivel && pecasSelecionadas.length === 0) {
+      erros.push("É obrigatório selecionar pelo menos uma peça (ou a opção 'Sem anomalia').");
+    }
+
+    if (erros.length > 0) {
+        alert("Por favor, preencha os seguintes campos antes de gerar o laudo:\n\n- " + erros.join("\n- "));
+        return;
+    }
+
+    let dadosServico = {};
+    try {
+        dadosServico = JSON.parse(selectServico.value);
+    } catch(e) {
+        dadosServico = { nivel: "N/A", codigo: "N/A", desc: "N/A", detalhe: "N/A" };
+    }
+
+    const coresMap = {
+        verde: { background: '#21b92d', text: '#000000' },
+        azul: { background: '#205fe1', text: '#000000' },
+        rosa: { background: '#ff00ff', text: '#000000' }
+    };
+
+    const dataGeracao = new Date().toLocaleDateString('pt-BR');
+
+    const laudoData = {
+        ra: document.getElementById("ra").value,
+        dataEntrada: new Date(document.getElementById("dataEntrada").value).toLocaleDateString('pt-BR', {timeZone: 'UTC'}),
+        horaEntrada: document.getElementById("horaEntrada").value,
+        cliente: cliente,
+        equipamento: document.getElementById("modelo").value,
+        codGerador: document.getElementById("codGerador").value,
+        codFonte: document.getElementById("codFonte").value,
+        codCelula: document.getElementById("codCelula").value,
+        acessorios: Array.from(document.querySelectorAll('input[name="acessorios"]:checked')).map(el => el.value).join(', ') || 'Nenhum',
+        defeitoRelatado: document.getElementById("defeitoRelatado").value,
+        obsTecnicas: document.getElementById("obsTecnicas").value.replace(/\n/g, '<br>'),
+        obsGerais: document.getElementById("obsGerais").value.replace(/\n/g, '<br>'),
+        pecasSelecionadas: Array.from(document.querySelectorAll('#pecasLista input[type="checkbox"]:checked')).map(el => {
+            const container = el.closest('.peca-item');
+            const quantidadeInput = container.querySelector('.quantidade-input');
+            const corInput = container.querySelector('input[name="cor_' + el.value + '"]:checked');
+            return { codigo: el.value, nome: el.dataset.nome, quantidade: quantidadeInput.value, cor: corInput ? corInput.value : 'verde' };
+        }),
+        imagens: imagensParaLaudo,
+        dataGeracao: dataGeracao, 
+        servico: dadosServico,
+        garantia: garantia
+    };
+    
+    const basePath = window.location.href.substring(0, window.location.href.lastIndexOf('/') + 1);
+    const caminhoImagemLegenda = basePath + 'imagens/tabelacores.jpg';
+    const caminhoLogo = basePath + 'imagens/logolaudo.jpg';
+
+    const novaJanela = window.open('', '_blank');
+    novaJanela.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>Laudo Técnico - RA/ID ${laudoData.ra}</title>
+          <style>
+            @media print {
+                @page { margin: 0; size: auto; }
+                body {
+                    padding-top: 20mm !important;    
+                    padding-bottom: 20mm !important; 
+                    padding-left: 15mm !important;   
+                    padding-right: 15mm !important;  
+                    margin: 0 !important;
+                    -webkit-print-color-adjust: exact; 
+                    print-color-adjust: exact;
+                }
+                .container { margin: 0 !important; width: 100% !important; box-shadow: none !important; }
+                .no-print { display: none !important; }
+                .section { page-break-inside: avoid; break-inside: avoid; }
+                .service-table, table { page-break-inside: avoid; }
+                .section h2, .service-table th { background-color: #002060 !important; color: #fff !important; }
+            }
+            body { font-family: Arial, sans-serif; margin: 0; background-color: #fff; color: #333; }
+            .container { max-width: 800px; margin: 20px auto; }
+            table { width: 100%; border-collapse: collapse; }
+            th, td { border: 1px solid #000; padding: 8px; text-align: left; font-size: 14px; }
+            th { background-color: #e9ecef; font-weight: bold; }
+            .section { margin-bottom: 30px; }
+            .section h2 {
+              font-size: 14px; font-weight: bold; color: #fff;
+              background-color: #002060; padding: 8px;
+              margin: 0 0 15px 0; border-radius: 4px;
+            }
+            .fotos-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 10px; }
+            .fotos-grid img { width: 100%; height: 5cm; object-fit: contain; border-radius: 4px; border: 1px solid #ccc; background-color: #f9f9f9; }
+            .header-table { width: 100%; border-collapse: collapse; margin-bottom: 40px; border: 2px solid #000; }
+            .header-table td { border: 1px solid #000; padding: 5px; vertical-align: middle; }
+            .logo-cell { width: 200px; text-align: center; padding: 10px; }
+            .logo-cell img { max-width: 180px; height: auto; }
+            .info-table { width: 100%; }
+            .info-table td { border: 1px solid #000; padding: 8px; font-size: 14px; }
+            .company-name { background-color: #002060; color: white; font-weight: bold; text-align: center; font-size: 18px; padding: 8px; }
+            .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; padding: 15px; border: 1px solid #eee; border-radius: 4px; }
+            .info-item { padding-bottom: 8px; border-bottom: 1px dotted #ccc; font-size: 14px; }
+            .info-item span { font-weight: bold; }
+            p { font-size: 14px; line-height: 1.6; margin-top: 0;}
+            .assinaturas-section { display: flex; justify-content: space-around; margin-top: 80px; text-align: center; }
+            .assinatura-box { width: 300px; }
+            .assinatura-linha { border-top: 1px solid #000; margin-top: 5px; padding-top: 5px; }
+            .service-table { width: 100%; margin-top: 20px; border: 2px solid #002060; }
+            .service-table th { background-color: #002060; color: white; text-align: center; }
+            .service-table td { text-align: center; padding: 10px; }
+            .classegarantia { text-align: right; font-weight: bold; color: black; font-size: 16px; margin-top: 20px; }
+            .button-container { text-align: center; margin-top: 30px; }
+            .button { padding: 12px 25px; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; color: white; margin: 0 10px; }
+            .print-btn { background-color: #007bff; }
+            .save-btn { background-color: #28a745; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <table class="header-table">
+              <tr>
+                <td class="logo-cell"><img src="${caminhoLogo}" alt="Logo da Empresa"></td>
+                <td>
+                  <table class="info-table">
+                    <tr><td class="company-name" colspan="2">SODRAMAR INDUSTRIA E COMERCIO LTDA</td></tr>
+                    <tr>
+                        <td><strong>Laudo técnico</strong></td>
+                        <td rowspan="2" style="text-align:center; vertical-align: middle;">${laudoData.dataGeracao}</td>
+                    </tr>
+                    <tr><td><strong>RA/ID:</strong> ${laudoData.ra}</td></tr>
+                  </table>
+                </td>
+              </tr>
+            </table>
+
+            <div class="section">
+              <h2>DADOS DO PRODUTO</h2>
+              <div class="info-grid">
+                <div class="info-item"><span>Equipamento:</span> ${laudoData.equipamento}</div>
+                <div class="info-item"><span>Data de Entrada:</span> ${laudoData.dataEntrada}</div>
+                <div class="info-item"><span>Hora de Entrada:</span> ${laudoData.horaEntrada}</div>
+                <div class="info-item"><span>Cliente:</span> ${laudoData.cliente}</div>
+                <div class="info-item"><span>Código do Gerador:</span> ${laudoData.codGerador || 'N/A'}</div>
+                <div class="info-item"><span>Código da Fonte:</span> ${laudoData.codFonte || 'N/A'}</div>
+                <div class="info-item"><span>Código da Célula:</span> ${laudoData.codCelula || 'N/A'}</div>
+                <div class="info-item"><span>Acessórios:</span> ${laudoData.acessorios}</div>
+              </div>
+            </div>
+
+            <div class="section"><h2>DEFEITO RELATADO PELO CLIENTE</h2><p>${laudoData.defeitoRelatado}</p></div>
+            <div class="section"><h2>OBSERVAÇÕES TÉCNICAS</h2><p>${laudoData.obsTecnicas}</p></div>
+            <div class="section"><h2>FOTOS DO EQUIPAMENTO</h2><div class="fotos-grid">${laudoData.imagens.map(src => `<img src="${src}">`).join('')}</div></div>
+            <div class="section"><h2>OBSERVAÇÕES GERAIS</h2><p>${laudoData.obsGerais || 'Nenhuma.'}</p></div>
+            <div class="section">
+                <h2>PEÇAS PARA SUBSTITUIÇÃO</h2>
+                <table>
+                    <thead><tr><th>Código</th><th>Descrição</th><th>Quantidade</th></tr></thead>
+                    <tbody>
+                    ${laudoData.pecasSelecionadas.map(peca => `<tr style="background-color: ${coresMap[peca.cor].background}; color: ${coresMap[peca.cor].text};"><td>${peca.codigo}</td><td>${peca.nome}</td><td>${peca.quantidade}</td></tr>`).join('')}
+                    </tbody>
+                </table>
+            </div>
+            <div class="section"><img src="${caminhoImagemLegenda}" alt="Legenda de Cores" style="width: 100%; max-width: 500px; display: block; margin: auto;"></div>
+            
+            <div class="section">
+                <h2>CLASSIFICAÇÃO DO SERVIÇO (MÃO DE OBRA)</h2>
+                <table class="service-table">
+                    <tr>
+                        <th style="width: 15%">Complexidade</th>
+                        <th style="width: 15%">Código</th>
+                        <th style="width: 30%">Descrição</th>
+                        <th style="width: 40%">Detalhe do Serviço</th>
+                    </tr>
+                    <tr>
+                        <td><strong>${laudoData.servico.nivel}</strong></td>
+                        <td>${laudoData.servico.codigo}</td>
+                        <td>${laudoData.servico.desc}</td>
+                        <td style="text-align: left">${laudoData.servico.detalhe}</td>
+                    </tr>
+                </table>
+            </div>
+
+            <p class="classegarantia">Garantia: ${laudoData.garantia}</p>
+
+            <div class="assinaturas-section">
+                <div class="assinatura-box"><div class="assinatura-linha">Supervisor</div></div>
+                <div class="assinatura-box"><div class="assinatura-linha">Laboratório(Estagiário)</div></div>
+            </div>
+            <div class="button-container no-print">
+              <button class="button save-btn" onclick="salvarNaPlanilha()">Salvar na Planilha</button>
+              <button class="button print-btn" onclick="window.print()">Imprimir Laudo</button>
+            </div>
+          </div>
+
+          <script>
+            const laudoDataParaEnvio = ${JSON.stringify(laudoData)};
+            const GOOGLE_WEBAPP_URL = '${GOOGLE_WEBAPP_URL}';
+            const UPLOAD_TOKEN = '${UPLOAD_TOKEN}';
+            
+            function salvarNaPlanilha() {
+              const payload = {
+                token: UPLOAD_TOKEN,
+                ra: laudoDataParaEnvio.ra,
+                cliente: laudoDataParaEnvio.cliente,
+                equipamento: laudoDataParaEnvio.equipamento,
+                dataEntrada: laudoDataParaEnvio.dataEntrada,
+                horaEntrada: laudoDataParaEnvio.horaEntrada,
+                acessorios: laudoDataParaEnvio.acessorios,
+                codGerador: laudoDataParaEnvio.codGerador,
+                codFonte: laudoDataParaEnvio.codFonte,
+                codCelula: laudoDataParaEnvio.codCelula,
+                tempoAnalise: laudoDataParaEnvio.servico.codigo + " - " + laudoDataParaEnvio.servico.nivel,
+                garantia: laudoDataParaEnvio.garantia,
+                defeitoRelatado: laudoDataParaEnvio.defeitoRelatado.replace(/<br>/g, "\\n"),
+                obsTecnicas: laudoDataParaEnvio.obsTecnicas.replace(/<br>/g, "\\n"),
+                obsGerais: laudoDataParaEnvio.obsGerais.replace(/<br>/g, "\\n"),
+                pecasSelecionadas: laudoDataParaEnvio.pecasSelecionadas
+              };
+
+              const btnSalvar = document.querySelector('.save-btn');
+              btnSalvar.disabled = true;
+              btnSalvar.textContent = 'Enviando...';
+
+              fetch(GOOGLE_WEBAPP_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain' },
+                body: JSON.stringify(payload)
+              })
+              .then(r => r.text())
+              .then(txt => {
+                try {
+                  const res = JSON.parse(txt);
+                  if (res.ok) {
+                    alert('Dados salvos na planilha com sucesso!');
+                    btnSalvar.textContent = 'Salvo com Sucesso!';
+                  } else {
+                    alert('Falha ao salvar na planilha: ' + (res.error || 'Erro desconhecido'));
+                    btnSalvar.disabled = false;
+                    btnSalvar.textContent = 'Salvar na Planilha';
+                  }
+                } catch {
+                  alert('Upload concluído (sem resposta JSON). Verifique a planilha.');
+                  btnSalvar.textContent = 'Salvo!';
+                }
+              })
+              .catch(err => {
+                console.error(err);
+                alert('Erro de conexão ao salvar na planilha: ' + err);
+                btnSalvar.disabled = false;
+                btnSalvar.textContent = 'Salvar na Planilha';
+              });
+            }
+          <\/script>
+        </body>
+        </html>
+    `);
+    novaJanela.document.close();
+}
+</script>
+</body>
+</html>
