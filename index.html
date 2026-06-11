@@ -79,18 +79,17 @@
       background-color: #218838;
     }
 
-    /* --- SEÇÃO DE PEÇAS E ESTOQUE --- */
+    /* --- SEÇÃO DE PEÇAS --- */
     .peca-img {
       width: 90px; height: 90px; margin-right: 15px; object-fit: cover;
       border-radius: 8px; border: 1px solid var(--cor-borda);
     }
-    #pecasLista label.peca-info {
+    #pecasLista label {
       display: flex; width: 100%; align-items: center; margin-bottom: 10px;
       padding: 10px; border-radius: 8px; border: 1px solid transparent;
       transition: background-color 0.2s ease-in-out, border-color 0.2s ease-in-out;
-      cursor: pointer;
     }
-    #pecasLista label.peca-info:hover {
+    #pecasLista label:hover {
       background-color: #f8f9fa; border-color: var(--cor-borda);
     }
     #pecasLista h4 {
@@ -105,37 +104,6 @@
       gap: 15px;
       align-items: center;
       margin-bottom: 15px;
-    }
-
-    .peca-textos {
-      display: flex;
-      flex-direction: column;
-      gap: 5px;
-    }
-
-    .badge-estoque {
-      font-size: 12px;
-      padding: 4px 8px;
-      border-radius: 12px;
-      font-weight: bold;
-      width: fit-content;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-    .estoque-ok {
-      background-color: #d4edda;
-      color: #155724;
-      border: 1px solid #c3e6cb;
-    }
-    .estoque-zerado {
-      background-color: #f8d7da;
-      color: #721c24;
-      border: 1px solid #f5c6cb;
-    }
-    .estoque-nd {
-      background-color: #e2e3e5;
-      color: #383d41;
-      border: 1px solid #d6d8db;
     }
 
     .opcoes-peca {
@@ -182,7 +150,43 @@
       display: flex; align-items: center; gap: 8px; font-weight: normal;
     }
     .quantidade-input {
-      width: 60px; padding: 8px; text-align: center;
+      width: 40px; padding: 8px; text-align: center;
+    }
+
+    .peca-info-texto {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .estoque-badge {
+      display: inline-flex;
+      align-items: center;
+      width: fit-content;
+      padding: 4px 8px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: bold;
+      border: 1px solid var(--cor-borda);
+      background-color: #eef2f7;
+      color: #334155;
+    }
+
+    .peca-item.estoque-baixo .estoque-badge {
+      background-color: #fff3cd;
+      border-color: #ffecb5;
+      color: #664d03;
+    }
+
+    .peca-item.estoque-zerado .estoque-badge {
+      background-color: #f8d7da;
+      border-color: #f5c2c7;
+      color: #842029;
+    }
+
+    .peca-item.estoque-zerado .peca-info,
+    .peca-item.estoque-baixo .peca-info {
+      border-color: currentColor;
     }
 
     /* --- PREVIEW DAS FOTOS --- */
@@ -318,67 +322,7 @@
   </form>
 
 <script>
-// --- SISTEMA DE ESTOQUE VIA XML (EXATAMENTE COMO O LAUDO DE ROBÔS) ---
-let estoquePorProduto = {};
-
-window.addEventListener('DOMContentLoaded', carregarEstoque);
-
-async function carregarEstoque() {
-    try {
-        const response = await fetch('datastock.xml');
-        if (!response.ok) throw new Error('Falha HTTP: ' + response.status);
-        const xmlTexto = await response.text();
-        
-        parseEstoqueXml(xmlTexto);
-        salvarEstoqueLocal();
-        
-        console.log('Estoque sincronizado com sucesso via datastock.xml', estoquePorProduto);
-    } catch (error) {
-        console.warn('Falha ao carregar datastock.xml. Carregando dados do backup local (localStorage).', error);
-        const backup = localStorage.getItem('estoque_geradores_backup');
-        if (backup) {
-            estoquePorProduto = JSON.parse(backup);
-        }
-    }
-}
-
-function parseEstoqueXml(xmlTexto) {
-    const parser = new DOMParser();
-    const xmlDoc = parser.parseFromString(xmlTexto, "application/xml");
-    const rows = xmlDoc.getElementsByTagName("Row");
-    
-    // Zera a variável para recarregar as informações novas
-    estoquePorProduto = {}; 
-
-    for (let i = 1; i < rows.length; i++) { // Iniciando em 1 para pular o cabeçalho
-        const cells = rows[i].getElementsByTagName("Cell");
-        if (cells.length >= 2) {
-            // Identifica as colunas de "produto" e "quantidade"
-            const codigoElem = cells[0].getElementsByTagName("Data")[0];
-            const qtdElem = cells[cells.length - 1].getElementsByTagName("Data")[0];
-
-            let codigo = codigoElem ? codigoElem.textContent.trim() : "";
-            let qtdText = qtdElem ? qtdElem.textContent.trim() : "0";
-
-            if (codigo.length > 0 && codigo.length < 5 && !isNaN(codigo)) {
-                codigo = codigo.padStart(5, '0');
-            }
-
-            if (codigo) {
-                // Salva os dados na variável
-                estoquePorProduto[codigo] = parseInt(qtdText, 10) || 0;
-            }
-        }
-    }
-}
-
-function salvarEstoqueLocal() {
-    // Cria um backup no localStorage
-    localStorage.setItem('estoque_geradores_backup', JSON.stringify(estoquePorProduto));
-}
-
-
-// --- CONFIGURAÇÃO DOS SERVIÇOS E PEÇAS ---
+// --- CONFIGURAÇÃO DOS SERVIÇOS (TABELA DA IMAGEM GERADORES DE CLORO) ---
 const tabelaServicosGerador = {
     residencial: [
         { nivel: "Simples",  codigo: "27783", desc: "SERVIÇO CONSERTO GER. CLORO RES NL1", detalhe: "Serviços de manutenção corretiva simples (Fusível, Revisão e Limpeza)." },
@@ -392,9 +336,16 @@ const tabelaServicosGerador = {
     ]
 };
 
+// --- MAPEAMENTO DO TIPO DE GERADOR ---
+// GS-42 e GS-45 são Comerciais. O resto é Residencial.
 const categoriaGerador = {
-    "GS-06": "residencial", "GS-12": "residencial", "GS-16": "residencial", 
-    "GS-20": "residencial", "GS-25": "residencial", "GS-42": "comercial", "GS-45": "comercial"
+    "GS-06": "residencial",
+    "GS-12": "residencial",
+    "GS-16": "residencial",
+    "GS-20": "residencial",
+    "GS-25": "residencial",
+    "GS-42": "comercial",
+    "GS-45": "comercial"
 };
 
 const pecasPorModelo = {
@@ -511,6 +462,158 @@ const pecasPorModelo = {
 
 const GOOGLE_WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbzjvRk5S6_hHhOwEHBsua0zMSVjRIB4rC7hQyT0NtcbL1OMGMx9qjqn4GlN2EHrPfKp/exec';
 const UPLOAD_TOKEN      = 'MEU_TOKEN_SEGURO_123';
+const ESTOQUE_XML_URL = 'datastock.xml';
+const LIMITE_ESTOQUE_BAIXO = 2;
+const CHAVE_ESTOQUE_LOCAL = 'geradorLaudoEstoqueDiario';
+let estoquePorProduto = {};
+let estoqueCarregado = false;
+
+function normalizarCodigoProduto(codigo) {
+    return String(codigo || '').trim();
+}
+
+function normalizarNumeroEstoque(valor) {
+    const numero = Number(String(valor || '0').replace(/\./g, '').replace(',', '.'));
+    return Number.isFinite(numero) ? numero : 0;
+}
+
+function formatarQuantidadeEstoque(valor) {
+    if (valor === null || valor === undefined) return 'N/I';
+    return Number(valor).toLocaleString('pt-BR', { maximumFractionDigits: 2 });
+}
+
+function obterEstoqueProduto(codigo) {
+    const codigoNormalizado = normalizarCodigoProduto(codigo);
+    if (!codigoNormalizado || !estoqueCarregado) return null;
+    if (Object.prototype.hasOwnProperty.call(estoquePorProduto, codigoNormalizado)) {
+        return estoquePorProduto[codigoNormalizado];
+    }
+    const codigoSemZeros = codigoNormalizado.replace(/^0+/, '');
+    if (Object.prototype.hasOwnProperty.call(estoquePorProduto, codigoSemZeros)) {
+        return estoquePorProduto[codigoSemZeros];
+    }
+    const codigoComZeros = codigoNormalizado.padStart(6, '0');
+    if (Object.prototype.hasOwnProperty.call(estoquePorProduto, codigoComZeros)) {
+        return estoquePorProduto[codigoComZeros];
+    }
+    return 0;
+}
+
+function classeEstoque(quantidade) {
+    if (quantidade === null || quantidade === undefined) return '';
+    if (quantidade <= 0) return 'estoque-zerado';
+    if (quantidade <= LIMITE_ESTOQUE_BAIXO) return 'estoque-baixo';
+    return '';
+}
+
+function textoEstoque(quantidade) {
+    if (quantidade === null || quantidade === undefined) return 'Estoque: N/I';
+    return `Estoque: ${formatarQuantidadeEstoque(quantidade)}`;
+}
+
+function parseEstoqueXml(xmlTexto) {
+    const xml = new DOMParser().parseFromString(xmlTexto, 'application/xml');
+    if (xml.querySelector('parsererror')) {
+        throw new Error('Arquivo XML invalido.');
+    }
+
+    const linhas = Array.from(xml.getElementsByTagName('Row'));
+    const mapa = {};
+    let indiceProduto = -1;
+    let indiceQuantidade = -1;
+
+    linhas.forEach(linha => {
+        const valores = [];
+        Array.from(linha.getElementsByTagName('Cell')).forEach(celula => {
+            const indexAttr = celula.getAttribute('ss:Index') || celula.getAttributeNS('urn:schemas-microsoft-com:office:spreadsheet', 'Index');
+            if (indexAttr) {
+                valores.length = Number(indexAttr) - 1;
+            }
+            const data = celula.getElementsByTagName('Data')[0];
+            valores.push(data ? data.textContent.trim() : '');
+        });
+
+        if (indiceProduto === -1 || indiceQuantidade === -1) {
+            const cabecalhos = valores.map(valor => valor.trim().toLowerCase());
+            indiceProduto = cabecalhos.findIndex(valor => valor === 'produto');
+            indiceQuantidade = cabecalhos.findIndex(valor => valor === 'quantidade');
+            return;
+        }
+
+        const produto = normalizarCodigoProduto(valores[indiceProduto]);
+        if (!produto) return;
+        const quantidade = normalizarNumeroEstoque(valores[indiceQuantidade]);
+        mapa[produto] = (mapa[produto] || 0) + quantidade;
+    });
+
+    return mapa;
+}
+
+function aplicarEstoqueNasPecas() {
+    document.querySelectorAll('.peca-item').forEach(item => {
+        const checkbox = item.querySelector('input[type="checkbox"]');
+        const badge = item.querySelector('.estoque-badge');
+        if (!checkbox || !badge) return;
+
+        item.classList.remove('estoque-baixo', 'estoque-zerado');
+        const estoque = obterEstoqueProduto(checkbox.value);
+        checkbox.dataset.estoque = estoque === null ? '' : String(estoque);
+        badge.textContent = textoEstoque(estoque);
+
+        const classe = classeEstoque(estoque);
+        if (classe) item.classList.add(classe);
+    });
+}
+
+function carregarEstoqueDeTexto(xmlTexto, origem) {
+    estoquePorProduto = parseEstoqueXml(xmlTexto);
+    estoqueCarregado = true;
+    salvarEstoqueLocal(origem);
+    aplicarEstoqueNasPecas();
+}
+
+function salvarEstoqueLocal(origem) {
+    try {
+        localStorage.setItem(CHAVE_ESTOQUE_LOCAL, JSON.stringify({
+            origem: origem,
+            salvoEm: new Date().toISOString(),
+            estoque: estoquePorProduto
+        }));
+    } catch (erro) {
+        console.warn('Nao foi possivel salvar o estoque no navegador.', erro);
+    }
+}
+
+function carregarEstoqueLocal() {
+    try {
+        const salvo = localStorage.getItem(CHAVE_ESTOQUE_LOCAL);
+        if (!salvo) return false;
+
+        const dados = JSON.parse(salvo);
+        if (!dados || !dados.estoque) return false;
+
+        estoquePorProduto = dados.estoque;
+        estoqueCarregado = true;
+        aplicarEstoqueNasPecas();
+
+        return true;
+    } catch (erro) {
+        console.warn('Nao foi possivel carregar o estoque salvo no navegador.', erro);
+        return false;
+    }
+}
+
+function montarUrlEstoqueOnline() {
+    const separador = ESTOQUE_XML_URL.includes('?') ? '&' : '?';
+    return `${ESTOQUE_XML_URL}${separador}v=${Date.now()}`;
+}
+
+fetch(montarUrlEstoqueOnline(), { cache: 'no-store' })
+    .then(resposta => resposta.ok ? resposta.text() : Promise.reject())
+    .then(texto => carregarEstoqueDeTexto(texto, ESTOQUE_XML_URL))
+    .catch(() => {
+        carregarEstoqueLocal();
+    });
 
 document.getElementById("modelo").addEventListener("change", function() {
   const modelo = this.value;
@@ -519,46 +622,34 @@ document.getElementById("modelo").addEventListener("change", function() {
   const selectServico = document.getElementById("selecaoServico");
 
   lista.innerHTML = "";
+  // Resetar select de serviço
   selectServico.innerHTML = '<option value="">-- Selecione o serviço --</option>';
   selectServico.disabled = true;
 
   if (modelo) {
+    // 1. Lógica das peças (Mantida)
     if (pecasPorModelo[modelo]) {
         pecasBox.classList.remove("hidden");
         const pecasDoModelo = pecasPorModelo[modelo];
         
         function criarHtmlPeca(codigo, peca) {
-            let badgeHtml = "";
-            let maxAttr = "";
-            
-            // Busca o valor atual na variável correta: estoquePorProduto
-            if (codigo !== "") {
-                const qtdAtual = estoquePorProduto[codigo] !== undefined ? estoquePorProduto[codigo] : "N/D";
-                
-                if (qtdAtual === "N/D") {
-                    badgeHtml = `<span class="badge-estoque estoque-nd">Estoque: N/D</span>`;
-                } else if (qtdAtual <= 0) {
-                    badgeHtml = `<span class="badge-estoque estoque-zerado">Estoque: Zerado</span>`;
-                } else {
-                    badgeHtml = `<span class="badge-estoque estoque-ok">Estoque: ${qtdAtual}</span>`;
-                    maxAttr = `max="${qtdAtual}"`;
-                }
-            }
-
+            const estoque = obterEstoqueProduto(codigo);
+            const estoqueClasse = classeEstoque(estoque);
+            const estoqueValor = estoque === null ? '' : String(estoque);
             return `
-                <div class="peca-item">
+                <div class="peca-item ${estoqueClasse}">
                 <label class="peca-info">
-                    <input type="checkbox" value="${codigo}" data-nome="${peca.nome}" onchange="togglePecaOpcoes(this)">
+                    <input type="checkbox" value="${codigo}" data-nome="${peca.nome}" data-estoque="${estoqueValor}" onchange="togglePecaOpcoes(this)">
                     <img src="imagens/${peca.imagem}" class="peca-img" alt="${peca.nome}">
-                    <div class="peca-textos">
+                    <span class="peca-info-texto">
                         <span>${peca.nome}</span>
-                        ${badgeHtml}
-                    </div>
+                        <span class="estoque-badge">${textoEstoque(estoque)}</span>
+                    </span>
                 </label>
                 <div class="opcoes-peca">
                     <label class="quantidade-label">
-                    Qtd:
-                    <input type="number" class="quantidade-input" value="1" min="1" ${maxAttr}>
+                    Quantidade:
+                    <input type="number" class="quantidade-input" value="1" min="1">
                     </label>
                     <div class="cor-selecao">
                     <input type="radio" name="cor_${codigo}" value="verde" id="cor_v_${codigo}" checked>
@@ -577,21 +668,23 @@ document.getElementById("modelo").addEventListener("change", function() {
 
         const primeiraChave = Object.keys(pecasDoModelo)[0];
         if (pecasDoModelo[primeiraChave] && typeof pecasDoModelo[primeiraChave].nome === 'undefined') {
-            for (const [nomeCategoria, pecasDaCategoria] of Object.entries(pecasDoModelo)) {
-                lista.innerHTML += `<h4>${nomeCategoria}</h4>`;
-                for (const [codigo, peca] of Object.entries(pecasDaCategoria)) {
-                    lista.innerHTML += criarHtmlPeca(codigo, peca);
-                }
-            }
-        } else {
-            for (const [codigo, peca] of Object.entries(pecasDoModelo)) {
-                lista.innerHTML += criarHtmlPeca(codigo, peca);
+        for (const [nomeCategoria, pecasDaCategoria] of Object.entries(pecasDoModelo)) {
+            lista.innerHTML += `<h4>${nomeCategoria}</h4>`;
+            for (const [codigo, peca] of Object.entries(pecasDaCategoria)) {
+            lista.innerHTML += criarHtmlPeca(codigo, peca);
             }
         }
+        } else {
+        for (const [codigo, peca] of Object.entries(pecasDoModelo)) {
+            lista.innerHTML += criarHtmlPeca(codigo, peca);
+        }
+        }
+        aplicarEstoqueNasPecas();
     } else {
         pecasBox.classList.add("hidden");
     }
 
+    // 2. Lógica do Serviço (Residencial vs Comercial)
     const tipo = categoriaGerador[modelo];
     if (tipo && tabelaServicosGerador[tipo]) {
         selectServico.disabled = false;
@@ -638,6 +731,7 @@ document.getElementById("fotos").addEventListener("change", function(event) {
     }
 });
 
+
 function gerarLaudo() {
     const erros = [];
     const cliente = document.getElementById("cliente").value.trim();
@@ -649,6 +743,7 @@ function gerarLaudo() {
     if (document.getElementById("obsTecnicas").value.trim() === '') erros.push("O campo 'Observações Técnicas' é obrigatório.");
     if (imagensParaLaudo.length === 0) erros.push("É necessário anexar pelo menos uma foto.");
     
+    // Validação da Classificação do Serviço
     const selectServico = document.getElementById("selecaoServico");
     if (selectServico.value === "") erros.push("É obrigatório selecionar a 'Classificação do Serviço'.");
 
@@ -667,6 +762,7 @@ function gerarLaudo() {
         return;
     }
 
+    // Extrair dados do serviço selecionado
     let dadosServico = {};
     try {
         dadosServico = JSON.parse(selectServico.value);
@@ -699,11 +795,12 @@ function gerarLaudo() {
             const container = el.closest('.peca-item');
             const quantidadeInput = container.querySelector('.quantidade-input');
             const corInput = container.querySelector('input[name="cor_' + el.value + '"]:checked');
-            return { codigo: el.value, nome: el.dataset.nome, quantidade: quantidadeInput.value, cor: corInput ? corInput.value : 'verde' };
+            const estoque = el.dataset.estoque === '' ? null : Number(el.dataset.estoque);
+            return { codigo: el.value, nome: el.dataset.nome, quantidade: quantidadeInput.value, estoque: estoque, cor: corInput ? corInput.value : 'verde' };
         }),
         imagens: imagensParaLaudo,
         dataGeracao: dataGeracao, 
-        servico: dadosServico,
+        servico: dadosServico, // Adiciona o objeto serviço
         garantia: garantia
     };
     
@@ -718,8 +815,12 @@ function gerarLaudo() {
         <head>
           <title>Laudo Técnico - RA/ID ${laudoData.ra}</title>
           <style>
+            /* --- CÓDIGO PARA REMOVER DATA/PÁGINA E MANTER AS BORDAS NA IMPRESSÃO --- */
             @media print {
-                @page { margin: 0; size: auto; }
+                @page {
+                    margin: 0; 
+                    size: auto;
+                }
                 body {
                     padding-top: 20mm !important;    
                     padding-bottom: 20mm !important; 
@@ -729,12 +830,26 @@ function gerarLaudo() {
                     -webkit-print-color-adjust: exact; 
                     print-color-adjust: exact;
                 }
-                .container { margin: 0 !important; width: 100% !important; box-shadow: none !important; }
+                .container {
+                    margin: 0 !important;
+                    width: 100% !important;
+                    box-shadow: none !important;
+                }
                 .no-print { display: none !important; }
-                .section { page-break-inside: avoid; break-inside: avoid; }
-                .service-table, table { page-break-inside: avoid; }
-                .section h2, .service-table th { background-color: #002060 !important; color: #fff !important; }
+                .section {
+                    page-break-inside: avoid;
+                    break-inside: avoid;
+                }
+                .service-table, table {
+                     page-break-inside: avoid;
+                }
+                .section h2, .service-table th { 
+                    background-color: #002060 !important; 
+                    color: #fff !important; 
+                }
             }
+            /* ----------------------------------------------------------- */
+
             body { font-family: Arial, sans-serif; margin: 0; background-color: #fff; color: #333; }
             .container { max-width: 800px; margin: 20px auto; }
             table { width: 100%; border-collapse: collapse; }
@@ -746,28 +861,49 @@ function gerarLaudo() {
               background-color: #002060; padding: 8px;
               margin: 0 0 15px 0; border-radius: 4px;
             }
-            .fotos-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 10px; }
-            .fotos-grid img { width: 100%; height: 5cm; object-fit: contain; border-radius: 4px; border: 1px solid #ccc; background-color: #f9f9f9; }
+            .fotos-grid {
+              display: grid;
+              grid-template-columns: repeat(3, 1fr);
+              gap: 10px; margin-top: 10px;
+            }
+            .fotos-grid img { 
+              width: 100%; height: 5cm; object-fit: contain; border-radius: 4px; 
+              border: 1px solid #ccc; background-color: #f9f9f9; 
+            }
             .header-table { width: 100%; border-collapse: collapse; margin-bottom: 40px; border: 2px solid #000; }
             .header-table td { border: 1px solid #000; padding: 5px; vertical-align: middle; }
             .logo-cell { width: 200px; text-align: center; padding: 10px; }
             .logo-cell img { max-width: 180px; height: auto; }
             .info-table { width: 100%; }
             .info-table td { border: 1px solid #000; padding: 8px; font-size: 14px; }
-            .company-name { background-color: #002060; color: white; font-weight: bold; text-align: center; font-size: 18px; padding: 8px; }
-            .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; padding: 15px; border: 1px solid #eee; border-radius: 4px; }
+            .company-name { 
+              background-color: #002060; color: white; font-weight: bold; 
+              text-align: center; font-size: 18px; padding: 8px; 
+            }
+            .info-grid { 
+              display: grid; grid-template-columns: 1fr 1fr; gap: 15px;
+              padding: 15px; border: 1px solid #eee; border-radius: 4px;
+            }
             .info-item { padding-bottom: 8px; border-bottom: 1px dotted #ccc; font-size: 14px; }
             .info-item span { font-weight: bold; }
             p { font-size: 14px; line-height: 1.6; margin-top: 0;}
             .assinaturas-section { display: flex; justify-content: space-around; margin-top: 80px; text-align: center; }
             .assinatura-box { width: 300px; }
             .assinatura-linha { border-top: 1px solid #000; margin-top: 5px; padding-top: 5px; }
+            
+            /* ESTILO DA NOVA TABELA DE SERVIÇO NO PDF */
             .service-table { width: 100%; margin-top: 20px; border: 2px solid #002060; }
             .service-table th { background-color: #002060; color: white; text-align: center; }
             .service-table td { text-align: center; padding: 10px; }
+            .estoque-pdf-baixo { background-color: #fff3cd; color: #664d03; font-weight: bold; }
+            .estoque-pdf-zerado { background-color: #f8d7da; color: #842029; font-weight: bold; }
+
             .classegarantia { text-align: right; font-weight: bold; color: black; font-size: 16px; margin-top: 20px; }
             .button-container { text-align: center; margin-top: 30px; }
-            .button { padding: 12px 25px; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; color: white; margin: 0 10px; }
+            .button { 
+              padding: 12px 25px; border: none; border-radius: 5px; cursor: pointer; 
+              font-size: 16px; color: white; margin: 0 10px; 
+            }
             .print-btn { background-color: #007bff; }
             .save-btn { background-color: #28a745; }
           </style>
@@ -811,9 +947,12 @@ function gerarLaudo() {
             <div class="section">
                 <h2>PEÇAS PARA SUBSTITUIÇÃO</h2>
                 <table>
-                    <thead><tr><th>Código</th><th>Descrição</th><th>Quantidade</th></tr></thead>
+                    <thead><tr><th>Código</th><th>Descrição</th><th>Quantidade</th><th>Estoque disponivel ${laudoData.dataGeracao}</th></tr></thead>
                     <tbody>
-                    ${laudoData.pecasSelecionadas.map(peca => `<tr style="background-color: ${coresMap[peca.cor].background}; color: ${coresMap[peca.cor].text};"><td>${peca.codigo}</td><td>${peca.nome}</td><td>${peca.quantidade}</td></tr>`).join('')}
+                    ${laudoData.pecasSelecionadas.map(peca => {
+                        const estoqueClassePdf = peca.estoque === null ? '' : (peca.estoque <= 0 ? 'estoque-pdf-zerado' : (peca.estoque <= LIMITE_ESTOQUE_BAIXO ? 'estoque-pdf-baixo' : ''));
+                        return `<tr style="background-color: ${coresMap[peca.cor].background}; color: ${coresMap[peca.cor].text};"><td>${peca.codigo}</td><td>${peca.nome}</td><td>${peca.quantidade}</td><td class="${estoqueClassePdf}">${textoEstoque(peca.estoque).replace('Estoque: ', '')}</td></tr>`;
+                    }).join('')}
                     </tbody>
                 </table>
             </div>
@@ -866,7 +1005,10 @@ function gerarLaudo() {
                 codGerador: laudoDataParaEnvio.codGerador,
                 codFonte: laudoDataParaEnvio.codFonte,
                 codCelula: laudoDataParaEnvio.codCelula,
+                
+                // Mapeando para o campo da planilha (enviamos codigo + nivel)
                 tempoAnalise: laudoDataParaEnvio.servico.codigo + " - " + laudoDataParaEnvio.servico.nivel,
+                
                 garantia: laudoDataParaEnvio.garantia,
                 defeitoRelatado: laudoDataParaEnvio.defeitoRelatado.replace(/<br>/g, "\\n"),
                 obsTecnicas: laudoDataParaEnvio.obsTecnicas.replace(/<br>/g, "\\n"),
@@ -913,6 +1055,7 @@ function gerarLaudo() {
     `);
     novaJanela.document.close();
 }
+
 </script>
 </body>
 </html>
